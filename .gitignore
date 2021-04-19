@@ -5,3 +5,9 @@
 
 # Output
 /xencons
+/.build_number
+/include/version.h
+x64/
+Win32/
+vs2019/xencons.inf
+vs2019/version/.revision
