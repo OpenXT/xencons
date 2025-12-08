@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms,
@@ -52,7 +53,7 @@ InitializeMutex(
 }
 
 static FORCEINLINE VOID
-__drv_maxIRQL(PASSIVE_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 AcquireMutex(
     IN  PMUTEX  Mutex
 )
@@ -68,7 +69,7 @@ AcquireMutex(
 }
 
 static FORCEINLINE VOID
-__drv_maxIRQL(PASSIVE_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 ReleaseMutex(
     IN  PMUTEX  Mutex
 )

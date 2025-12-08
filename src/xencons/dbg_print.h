@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -43,8 +44,8 @@
 
 static __inline VOID
 __Error(
-    IN  const CHAR  *Prefix,
-    IN  const CHAR  *Format,
+    _In_ PCSTR      Prefix,
+    _In_ PCSTR      Format,
     ...
     )
 {
@@ -66,8 +67,8 @@ __Error(
 
 static __inline VOID
 __Warning(
-    IN  const CHAR  *Prefix,
-    IN  const CHAR  *Format,
+    _In_ PCSTR      Prefix,
+    _In_ PCSTR      Format,
     ...
     )
 {
@@ -88,11 +89,10 @@ __Warning(
         __Warning(__MODULE__ "|" __FUNCTION__ ": ", __VA_ARGS__)
 
 #if DBG
-
 static __inline VOID
 __Trace(
-    IN  const CHAR  *Prefix,
-    IN  const CHAR  *Format,
+    _In_ PCSTR      Prefix,
+    _In_ PCSTR      Format,
     ...
     )
 {
@@ -109,28 +109,16 @@ __Trace(
     va_end(Arguments);
 }
 
-#else   // DBG
-
-static __inline VOID
-__Trace(
-    IN  const CHAR  *Prefix,
-    IN  const CHAR  *Format,
-    ...
-    )
-{
-    UNREFERENCED_PARAMETER(Prefix);
-    UNREFERENCED_PARAMETER(Format);
-}
-
-#endif  // DBG
-
 #define Trace(...)  \
         __Trace(__MODULE__ "|" __FUNCTION__ ": ", __VA_ARGS__)
+#else   // DBG
+#define Trace(...)  (VOID)(__VA_ARGS__)
+#endif  // DBG
 
 static __inline VOID
 __Info(
-    IN  const CHAR  *Prefix,
-    IN  const CHAR  *Format,
+    _In_ PCSTR      Prefix,
+    _In_ PCSTR      Format,
     ...
     )
 {

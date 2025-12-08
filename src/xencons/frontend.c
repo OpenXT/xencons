@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms,
@@ -64,17 +65,17 @@ typedef enum _FRONTEND_STATE {
 struct _XENCONS_FRONTEND {
     LONG                        References;
     PXENCONS_PDO                Pdo;
-    PCHAR                       Path;
+    PSTR                        Path;
     FRONTEND_STATE              State;
     KSPIN_LOCK                  Lock;
     PXENCONS_THREAD             EjectThread;
     KEVENT                      EjectEvent;
     BOOLEAN                     Online;
 
-    PCHAR                       BackendPath;
+    PSTR                        BackendPath;
     USHORT                      BackendDomain;
-    PCHAR                       Name;
-    PCHAR                       Protocol;
+    PSTR                        Name;
+    PSTR                        Protocol;
 
     XENBUS_DEBUG_INTERFACE      DebugInterface;
     XENBUS_SUSPEND_INTERFACE    SuspendInterface;
@@ -87,9 +88,9 @@ struct _XENCONS_FRONTEND {
     PXENCONS_RING               Ring;
 };
 
-static const PCHAR
+static PCSTR
 FrontendStateName(
-    IN  FRONTEND_STATE  State
+    _In_ FRONTEND_STATE State
     )
 {
 #define _STATE_NAME(_State)     \
@@ -111,9 +112,9 @@ FrontendStateName(
 #undef  _STATE_NAME
 }
 
-static const PCHAR
+static PCSTR
 XenbusStateName(
-    IN  XenbusState State
+    _In_ XenbusState    State
     )
 {
 #define _STATE_NAME(_State)         \
@@ -141,7 +142,7 @@ XenbusStateName(
 
 static FORCEINLINE PVOID
 __FrontendAllocate(
-    IN  ULONG   Length
+    _In_ ULONG  Length
     )
 {
     return __AllocatePoolWithTag(NonPagedPool, Length, FRONTEND_POOL);
@@ -149,7 +150,7 @@ __FrontendAllocate(
 
 static FORCEINLINE VOID
 __FrontendFree(
-    IN  PVOID   Buffer
+    _In_ PVOID  Buffer
     )
 {
     __FreePoolWithTag(Buffer, FRONTEND_POOL);
@@ -157,7 +158,7 @@ __FrontendFree(
 
 static FORCEINLINE PXENCONS_PDO
 __FrontendGetPdo(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return Frontend->Pdo;
@@ -165,39 +166,39 @@ __FrontendGetPdo(
 
 PXENCONS_PDO
 FrontendGetPdo(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return __FrontendGetPdo(Frontend);
 }
 
-static FORCEINLINE PCHAR
+static FORCEINLINE PSTR
 __FrontendGetPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return Frontend->Path;
 }
 
-PCHAR
+PSTR
 FrontendGetPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return __FrontendGetPath(Frontend);
 }
 
-static FORCEINLINE PCHAR
+static FORCEINLINE PSTR
 __FrontendGetBackendPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return Frontend->BackendPath;
 }
 
-PCHAR
+PSTR
 FrontendGetBackendPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return __FrontendGetBackendPath(Frontend);
@@ -205,7 +206,7 @@ FrontendGetBackendPath(
 
 static FORCEINLINE USHORT
 __FrontendGetBackendDomain(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return Frontend->BackendDomain;
@@ -213,7 +214,7 @@ __FrontendGetBackendDomain(
 
 USHORT
 FrontendGetBackendDomain(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return __FrontendGetBackendDomain(Frontend);
@@ -221,7 +222,7 @@ FrontendGetBackendDomain(
 
 static BOOLEAN
 FrontendIsOnline(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     return Frontend->Online;
@@ -229,10 +230,10 @@ FrontendIsOnline(
 
 static BOOLEAN
 FrontendIsBackendOnline(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
-    PCHAR                   Buffer;
+    PSTR                    Buffer;
     BOOLEAN                 Online;
     NTSTATUS                status;
 
@@ -257,12 +258,12 @@ FrontendIsBackendOnline(
 
 static DECLSPEC_NOINLINE NTSTATUS
 FrontendEject(
-    IN  PXENCONS_THREAD Self,
-    IN  PVOID           Context
+    _In_ PXENCONS_THREAD    Self,
+    _In_ PVOID              Context
     )
 {
-    PXENCONS_FRONTEND   Frontend = Context;
-    PKEVENT             Event;
+    PXENCONS_FRONTEND       Frontend = Context;
+    PKEVENT                 Event;
 
     Trace("%s: ====>\n", __FrontendGetPath(Frontend));
 
@@ -309,12 +310,12 @@ FrontendEject(
 
 VOID
 FrontendEjectFailed(
-    IN PXENCONS_FRONTEND    Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     KIRQL                   Irql;
     ULONG                   Length;
-    PCHAR                   Path;
+    PSTR                    Path;
     NTSTATUS                status;
 
     KeAcquireSpinLock(&Frontend->Lock, &Irql);
@@ -360,7 +361,7 @@ fail1:
 
 static VOID
 FrontendSetOnline(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     Trace("====>\n");
@@ -372,7 +373,7 @@ FrontendSetOnline(
 
 static VOID
 FrontendSetOffline(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     Trace("====>\n");
@@ -385,8 +386,8 @@ FrontendSetOffline(
 
 static VOID
 FrontendSetXenbusState(
-    IN  PXENCONS_FRONTEND   Frontend,
-    IN  XenbusState         State
+    _In_ PXENCONS_FRONTEND  Frontend,
+    _In_ XenbusState        State
     )
 {
     BOOLEAN                 Online;
@@ -417,8 +418,8 @@ FrontendSetXenbusState(
 
 static VOID
 FrontendWaitForBackendXenbusStateChange(
-    IN      PXENCONS_FRONTEND   Frontend,
-    IN OUT  XenbusState         *State
+    _In_     PXENCONS_FRONTEND  Frontend,
+    _Inout_  XenbusState        *State
     )
 {
     KEVENT                      Event;
@@ -452,7 +453,7 @@ FrontendWaitForBackendXenbusStateChange(
     Timeout.QuadPart = 0;
 
     while (*State == Old && TimeDelta < 120000) {
-        PCHAR           Buffer;
+        PSTR            Buffer;
         LARGE_INTEGER   Now;
 
         if (Watch != NULL) {
@@ -511,10 +512,10 @@ FrontendWaitForBackendXenbusStateChange(
 
 static NTSTATUS
 FrontendAcquireBackend(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
-    PCHAR                   Buffer;
+    PSTR                    Buffer;
     NTSTATUS                status;
 
     Trace("=====>\n");
@@ -557,7 +558,7 @@ fail1:
 
 static VOID
 FrontendReleaseBackend(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     Trace("=====>\n");
@@ -577,7 +578,7 @@ FrontendReleaseBackend(
 
 static VOID
 FrontendClose(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     XenbusState             State;
@@ -621,7 +622,7 @@ FrontendClose(
 
 static NTSTATUS
 FrontendPrepare(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     XenbusState             State;
@@ -705,8 +706,8 @@ fail1:
 
 static VOID
 FrontendDebugCallback(
-    IN  PVOID               Argument,
-    IN  BOOLEAN             Crashing
+    _In_ PVOID              Argument,
+    _In_ BOOLEAN            Crashing
     )
 {
     PXENCONS_FRONTEND       Frontend = Argument;
@@ -729,12 +730,12 @@ FrontendDebugCallback(
 
 static NTSTATUS
 FrontendConnect(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     XenbusState             State;
     ULONG                   Attempt;
-    PCHAR                   Buffer;
+    PSTR                    Buffer;
     ULONG                   Length;
     NTSTATUS                status;
 
@@ -889,7 +890,7 @@ fail1:
 
 static VOID
 FrontendDisconnect(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     Trace("====>\n");
@@ -914,7 +915,7 @@ FrontendDisconnect(
 
 static NTSTATUS
 FrontendEnable(
-    IN  PXENCONS_FRONTEND    Frontend
+    _In_ PXENCONS_FRONTEND   Frontend
     )
 {
     NTSTATUS                status;
@@ -937,7 +938,7 @@ fail1:
 
 static VOID
 FrontendDisable(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     Trace("====>\n");
@@ -949,8 +950,8 @@ FrontendDisable(
 
 static NTSTATUS
 FrontendSetState(
-    IN  PXENCONS_FRONTEND   Frontend,
-    IN  FRONTEND_STATE      State
+    _In_ PXENCONS_FRONTEND  Frontend,
+    _In_ FRONTEND_STATE     State
     )
 {
     BOOLEAN                 Failed;
@@ -1103,7 +1104,7 @@ FrontendSetState(
 
 static FORCEINLINE VOID
 __FrontendResume(
-    IN  PXENCONS_FRONTEND    Frontend
+    _In_ PXENCONS_FRONTEND   Frontend
     )
 {
     ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
@@ -1116,7 +1117,7 @@ __FrontendResume(
 
 static FORCEINLINE VOID
 __FrontendSuspend(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     ASSERT3U(KeGetCurrentIrql(), == , DISPATCH_LEVEL);
@@ -1127,7 +1128,7 @@ __FrontendSuspend(
 
 static DECLSPEC_NOINLINE VOID
 FrontendSuspendCallback(
-    IN  PVOID           Argument
+    _In_ PVOID          Argument
     )
 {
     PXENCONS_FRONTEND   Frontend = Argument;
@@ -1138,7 +1139,7 @@ FrontendSuspendCallback(
 
 static NTSTATUS
 FrontendResume(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     KIRQL                   Irql;
@@ -1197,7 +1198,7 @@ fail1:
 
 static VOID
 FrontendSuspend(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     )
 {
     KIRQL                   Irql;
@@ -1233,8 +1234,8 @@ FrontendSuspend(
 
 static NTSTATUS
 FrontendGetProperty(
-    IN  PXENCONS_FRONTEND   Frontend,
-    IN  PIRP                Irp
+    _In_ PXENCONS_FRONTEND  Frontend,
+    _In_ PIRP               Irp
     )
 {
     PIO_STACK_LOCATION      StackLocation;
@@ -1242,7 +1243,7 @@ FrontendGetProperty(
     ULONG                   InputBufferLength;
     ULONG                   OutputBufferLength;
     PVOID                   Buffer;
-    PCHAR                   Value;
+    PSTR                    Value;
     ULONG                   Length;
     NTSTATUS                status;
 
@@ -1307,7 +1308,7 @@ fail1:
 
 static NTSTATUS
 FrontendAbiAcquire(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1369,7 +1370,7 @@ fail1:
 
 static VOID
 FrontendAbiRelease(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1406,7 +1407,7 @@ done:
 
 static NTSTATUS
 FrontendAbiD3ToD0(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1419,7 +1420,7 @@ FrontendAbiD3ToD0(
 
 static VOID
 FrontendAbiD0ToD3(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1430,8 +1431,8 @@ FrontendAbiD0ToD3(
 
 static NTSTATUS
 FrontendAbiOpen(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PFILE_OBJECT                    FileObject
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PFILE_OBJECT                   FileObject
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1441,8 +1442,8 @@ FrontendAbiOpen(
 
 static NTSTATUS
 FrontendAbiClose(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PFILE_OBJECT                    FileObject
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PFILE_OBJECT                   FileObject
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1452,8 +1453,8 @@ FrontendAbiClose(
 
 static NTSTATUS
 FrontendAbiPutQueue(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PIRP                            Irp
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PIRP                           Irp
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;
@@ -1488,13 +1489,13 @@ static XENCONS_CONSOLE_ABI FrontendAbi = {
 
 NTSTATUS
 FrontendCreate(
-    IN  PXENCONS_PDO                    Pdo,
-    OUT PXENCONS_CONSOLE_ABI_CONTEXT    *Context
+    _In_ PXENCONS_PDO                   Pdo,
+    _Out_ PXENCONS_CONSOLE_ABI_CONTEXT  *Context
     )
 {
-    PCHAR                               Name;
+    PSTR                                Name;
     ULONG                               Length;
-    PCHAR                               Path;
+    PSTR                                Path;
     PXENCONS_FRONTEND                   Frontend;
     NTSTATUS                            status;
 
@@ -1596,8 +1597,8 @@ fail1:
 
 VOID
 FrontendGetAbi(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    OUT PXENCONS_CONSOLE_ABI            Abi
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _Out_ PXENCONS_CONSOLE_ABI          Abi
     )
 {
     *Abi = FrontendAbi;
@@ -1607,7 +1608,7 @@ FrontendGetAbi(
 
 VOID
 FrontendDestroy(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     )
 {
     PXENCONS_FRONTEND                   Frontend = (PXENCONS_FRONTEND)Context;

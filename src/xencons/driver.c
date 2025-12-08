@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -69,7 +70,7 @@ DriverSafeMode(
 
 static FORCEINLINE VOID
 __DriverSetDriverObject(
-    IN  PDRIVER_OBJECT  DriverObject
+    _In_opt_ PDRIVER_OBJECT DriverObject
     )
 {
     Driver.DriverObject = DriverObject;
@@ -93,7 +94,7 @@ DriverGetDriverObject(
 
 static FORCEINLINE VOID
 __DriverSetParametersKey(
-    IN  HANDLE  Key
+    _In_opt_ HANDLE Key
     )
 {
     Driver.ParametersKey = Key;
@@ -119,7 +120,7 @@ DRIVER_UNLOAD       DriverUnload;
 
 VOID
 DriverUnload(
-    IN  PDRIVER_OBJECT  DriverObject
+    _In_ PDRIVER_OBJECT DriverObject
     )
 {
     HANDLE              ParametersKey;
@@ -155,8 +156,8 @@ DRIVER_ADD_DEVICE   AddDevice;
 
 NTSTATUS
 AddDevice(
-    IN  PDRIVER_OBJECT  DriverObject,
-    IN  PDEVICE_OBJECT  DeviceObject
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PDEVICE_OBJECT DeviceObject
     )
 {
     NTSTATUS            status;
@@ -179,22 +180,35 @@ fail1:
     return status;
 }
 
-DRIVER_DISPATCH Dispatch;
-
+_Function_class_(DRIVER_DISPATCH)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_same_
 NTSTATUS
 Dispatch(
-    IN PDEVICE_OBJECT   DeviceObject,
-    IN PIRP             Irp
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _Inout_ PIRP        Irp
     )
 {
-    PXENCONS_DX          Dx;
+    PXENCONS_DX         Dx;
     NTSTATUS            status;
 
     Dx = (PXENCONS_DX)DeviceObject->DeviceExtension;
     ASSERT3P(Dx->DeviceObject, ==, DeviceObject);
 
     if (Dx->DevicePnpState == Deleted) {
+        PIO_STACK_LOCATION  StackLocation = IoGetCurrentIrpStackLocation(Irp);
+        UCHAR               MajorFunction = StackLocation->MajorFunction;
+        UCHAR               MinorFunction = StackLocation->MinorFunction;
+
         status = STATUS_NO_SUCH_DEVICE;
+
+        if (MajorFunction == IRP_MJ_PNP) {
+            /* FDO and PDO deletions can block after being marked deleted, but before IoDeleteDevice */
+            if (MinorFunction == IRP_MN_SURPRISE_REMOVAL || MinorFunction == IRP_MN_REMOVE_DEVICE)
+                status = STATUS_SUCCESS;
+
+            ASSERT((MinorFunction != IRP_MN_CANCEL_REMOVE_DEVICE) && (MinorFunction != IRP_MN_CANCEL_STOP_DEVICE));
+        }
 
         Irp->IoStatus.Status = status;
         IoCompleteRequest(Irp, IO_NO_INCREMENT);
@@ -229,14 +243,14 @@ DRIVER_INITIALIZE   DriverEntry;
 
 NTSTATUS
 DriverEntry(
-    IN  PDRIVER_OBJECT  DriverObject,
-    IN  PUNICODE_STRING RegistryPath
+    _In_ PDRIVER_OBJECT     DriverObject,
+    _In_ PUNICODE_STRING    RegistryPath
     )
 {
-    HANDLE              ServiceKey;
-    HANDLE              ParametersKey;
-    ULONG               Index;
-    NTSTATUS            status;
+    HANDLE                  ServiceKey;
+    HANDLE                  ParametersKey;
+    ULONG                   Index;
+    NTSTATUS                status;
 
     ASSERT3P(__DriverGetDriverObject(), ==, NULL);
 
@@ -258,7 +272,7 @@ DriverEntry(
          MONTH,
          YEAR);
 
-    status = RegistryInitialize(RegistryPath);
+    status = RegistryInitialize(DriverObject, RegistryPath);
     if (!NT_SUCCESS(status))
         goto fail1;
 

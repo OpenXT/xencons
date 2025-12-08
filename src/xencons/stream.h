@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -40,19 +41,19 @@ typedef struct _XENCONS_STREAM XENCONS_STREAM, *PXENCONS_STREAM;
 
 extern NTSTATUS
 StreamCreate(
-    IN  PXENCONS_FDO    Fdo,
-    OUT PXENCONS_STREAM *Stream
+    _In_ PXENCONS_FDO           Fdo,
+    _Outptr_ PXENCONS_STREAM    *Stream
     );
 
 extern VOID
 StreamDestroy(
-    IN  PXENCONS_STREAM Stream
+    _In_ PXENCONS_STREAM    Stream
     );
 
 extern NTSTATUS
 StreamPutQueue(
-    IN  PXENCONS_STREAM Stream,
-    IN  PIRP            Irp
+    _In_ PXENCONS_STREAM    Stream,
+    _In_ PIRP               Irp
     );
 
 #endif  // _XENCONS_STREAM_H

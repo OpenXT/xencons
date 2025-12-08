@@ -27,12 +27,15 @@ Function Copy-FileWithReplacements {
 	ForEach-Object {
 		$line = $_
 		$Replacements.GetEnumerator() | ForEach-Object {
-			$key = [string]::Format("{0}{1}{2}", $Token, $_.Name, $Token)
-			if (([string]::IsNullOrEmpty($_.Value)) -and ($line.Contains($key))) {
-				Write-Host "Skipping Line Containing " $_.Name
-				$line = $null
+			if ($null -ne $line) {
+				$key = [string]::Format("{0}{1}{2}", $Token, $_.Name, $Token)
+				if (([string]::IsNullOrEmpty($_.Value)) -and ($line.Contains($key))) {
+					Write-Host "Skipping Line Containing " $_.Name
+					$line = $null
+				} else {
+					$line = $line -replace $key, $_.Value
+				}
 			}
-			$line = $line -replace $key, $_.Value
 		}
 		$line
 	} |
@@ -61,6 +64,7 @@ $Replacements = [ordered]@{
 	'PRODUCT_NAME' = $Env:PRODUCT_NAME;
 	'VENDOR_DEVICE_ID' = $Env:VENDOR_DEVICE_ID;
 	'VENDOR_PREFIX' = $Env:VENDOR_PREFIX;
+	'COPYRIGHT' = $Env:COPYRIGHT;
 
 	'MAJOR_VERSION' = $Env:MAJOR_VERSION;
 	'MINOR_VERSION' = $Env:MINOR_VERSION;

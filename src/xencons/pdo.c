@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -35,6 +36,7 @@
 #include <wdmguid.h>
 #include <ntstrsafe.h>
 #include <stdlib.h>
+#include <wdmsec.h>
 
 #include <suspend_interface.h>
 #include <xencons_device.h>
@@ -67,7 +69,7 @@ struct _XENCONS_PDO {
 
     PXENCONS_FDO                    Fdo;
     BOOLEAN                         Missing;
-    const CHAR                      *Reason;
+    PCSTR                           Reason;
     LONG                   		    Eject;
 
     XENBUS_SUSPEND_INTERFACE    	SuspendInterface;
@@ -80,7 +82,7 @@ struct _XENCONS_PDO {
 
 static FORCEINLINE PVOID
 __PdoAllocate(
-    IN  ULONG   Length
+    _In_ ULONG  Length
     )
 {
     return __AllocatePoolWithTag(NonPagedPool, Length, PDO_POOL);
@@ -88,7 +90,7 @@ __PdoAllocate(
 
 static FORCEINLINE VOID
 __PdoFree(
-    IN  PVOID   Buffer
+    _In_ PVOID  Buffer
     )
 {
     __FreePoolWithTag(Buffer, PDO_POOL);
@@ -96,8 +98,8 @@ __PdoFree(
 
 static FORCEINLINE VOID
 __PdoSetDevicePnpState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_PNP_STATE    State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_PNP_STATE   State
     )
 {
     PXENCONS_DX             Dx = Pdo->Dx;
@@ -111,8 +113,8 @@ __PdoSetDevicePnpState(
 
 VOID
 PdoSetDevicePnpState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_PNP_STATE    State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_PNP_STATE   State
     )
 {
     __PdoSetDevicePnpState(Pdo, State);
@@ -120,8 +122,8 @@ PdoSetDevicePnpState(
 
 static FORCEINLINE VOID
 __PdoRestoreDevicePnpState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_PNP_STATE    State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_PNP_STATE   State
     )
 {
     PXENCONS_DX             Dx = Pdo->Dx;
@@ -132,7 +134,7 @@ __PdoRestoreDevicePnpState(
 
 static FORCEINLINE DEVICE_PNP_STATE
 __PdoGetDevicePnpState(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -142,7 +144,7 @@ __PdoGetDevicePnpState(
 
 DEVICE_PNP_STATE
 PdoGetDevicePnpState(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoGetDevicePnpState(Pdo);
@@ -150,8 +152,8 @@ PdoGetDevicePnpState(
 
 static FORCEINLINE VOID
 __PdoSetSystemPowerState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  SYSTEM_POWER_STATE  State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ SYSTEM_POWER_STATE State
     )
 {
     PXENCONS_DX             Dx = Pdo->Dx;
@@ -161,7 +163,7 @@ __PdoSetSystemPowerState(
 
 static FORCEINLINE SYSTEM_POWER_STATE
 __PdoGetSystemPowerState(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -171,8 +173,8 @@ __PdoGetSystemPowerState(
 
 static FORCEINLINE VOID
 __PdoSetDevicePowerState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_POWER_STATE  State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_POWER_STATE State
     )
 {
     PXENCONS_DX             Dx = Pdo->Dx;
@@ -182,7 +184,7 @@ __PdoSetDevicePowerState(
 
 static FORCEINLINE DEVICE_POWER_STATE
 __PdoGetDevicePowerState(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -192,8 +194,8 @@ __PdoGetDevicePowerState(
 
 static FORCEINLINE VOID
 __PdoSetMissing(
-    IN  PXENCONS_PDO    Pdo,
-    IN  const CHAR      *Reason
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PCSTR          Reason
     )
 {
     Pdo->Reason = Reason;
@@ -202,8 +204,8 @@ __PdoSetMissing(
 
 VOID
 PdoSetMissing(
-    IN  PXENCONS_PDO    Pdo,
-    IN  const CHAR      *Reason
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PCSTR          Reason
     )
 {
     __PdoSetMissing(Pdo, Reason);
@@ -211,7 +213,7 @@ PdoSetMissing(
 
 static FORCEINLINE BOOLEAN
 __PdoIsMissing(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return Pdo->Missing;
@@ -219,7 +221,7 @@ __PdoIsMissing(
 
 BOOLEAN
 PdoIsMissing(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoIsMissing(Pdo);
@@ -227,7 +229,7 @@ PdoIsMissing(
 
 static FORCEINLINE PDEVICE_OBJECT
 __PdoGetDeviceObject(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -237,7 +239,7 @@ __PdoGetDeviceObject(
 
 PDEVICE_OBJECT
 PdoGetDeviceObject(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoGetDeviceObject(Pdo);
@@ -245,7 +247,7 @@ PdoGetDeviceObject(
 
 static FORCEINLINE PXENCONS_FDO
 __PdoGetFdo(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return Pdo->Fdo;
@@ -253,7 +255,7 @@ __PdoGetFdo(
 
 PXENCONS_FDO
 PdoGetFdo(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoGetFdo(Pdo);
@@ -261,12 +263,12 @@ PdoGetFdo(
 
 static FORCEINLINE VOID
 __PdoSetName(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PANSI_STRING    Device
+    _In_ PXENCONS_PDO       Pdo,
+    _In_opt_ PANSI_STRING   Device
     )
 {
-    PXENCONS_DX         Dx = Pdo->Dx;
-    NTSTATUS            status;
+    PXENCONS_DX             Dx = Pdo->Dx;
+    NTSTATUS                status;
 
     if (Device == NULL)
         status = RtlStringCbPrintfA(Dx->Name,
@@ -280,9 +282,9 @@ __PdoSetName(
     ASSERT(NT_SUCCESS(status));
 }
 
-static FORCEINLINE PCHAR
+static FORCEINLINE PSTR
 __PdoGetName(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -290,17 +292,17 @@ __PdoGetName(
     return Dx->Name;
 }
 
-PCHAR
+PSTR
 PdoGetName(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoGetName(Pdo);
 }
 
-static FORCEINLINE PCHAR
+static FORCEINLINE PSTR
 __PdoGetVendorName(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return FdoGetVendorName(__PdoGetFdo(Pdo));
@@ -308,7 +310,7 @@ __PdoGetVendorName(
 
 static FORCEINLINE BOOLEAN
 __PdoIsDefault(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return Pdo->IsDefault;
@@ -316,7 +318,7 @@ __PdoIsDefault(
 
 BOOLEAN
 PdoIsDefault(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoIsDefault(Pdo);
@@ -324,8 +326,8 @@ PdoIsDefault(
 
 static FORCEINLINE VOID
 __PdoSetDefault(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PANSI_STRING    Device
+    _In_ PXENCONS_PDO       Pdo,
+    _In_opt_ PANSI_STRING   Device
     )
 {
     Pdo->IsDefault = (Device == NULL) ? TRUE : FALSE;
@@ -333,7 +335,7 @@ __PdoSetDefault(
 
 static FORCEINLINE BOOLEAN
 __PdoSetEjectRequested(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return (InterlockedBitTestAndSet(&Pdo->Eject, 0) == 0) ? TRUE : FALSE;
@@ -341,7 +343,7 @@ __PdoSetEjectRequested(
 
 VOID
 PdoRequestEject(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -361,7 +363,7 @@ PdoRequestEject(
 
 static FORCEINLINE BOOLEAN
 __PdoClearEjectRequested(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return (InterlockedBitTestAndReset(&Pdo->Eject, 0) != 0) ? TRUE : FALSE;
@@ -369,7 +371,7 @@ __PdoClearEjectRequested(
 
 static FORCEINLINE BOOLEAN
 __PdoIsEjectRequested(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     KeMemoryBarrier();
@@ -378,7 +380,7 @@ __PdoIsEjectRequested(
 
 BOOLEAN
 PdoIsEjectRequested(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     return __PdoIsEjectRequested(Pdo);
@@ -386,7 +388,7 @@ PdoIsEjectRequested(
 
 static FORCEINLINE NTSTATUS
 __PdoD3ToD0(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     POWER_STATE         PowerState;
@@ -410,7 +412,7 @@ __PdoD3ToD0(
 
 static FORCEINLINE VOID
 __PdoD0ToD3(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     POWER_STATE         PowerState;
@@ -432,7 +434,7 @@ __PdoD0ToD3(
 
 static DECLSPEC_NOINLINE VOID
 PdoSuspendCallbackLate(
-    IN  PVOID               Argument
+    _In_ PVOID              Argument
     )
 {
     PXENCONS_PDO            Pdo = Argument;
@@ -447,7 +449,7 @@ PdoSuspendCallbackLate(
 // This function must not touch pageable code or data
 static DECLSPEC_NOINLINE NTSTATUS
 PdoD3ToD0(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     KIRQL               Irql;
@@ -524,7 +526,7 @@ fail1:
 // This function must not touch pageable code or data
 static DECLSPEC_NOINLINE VOID
 PdoD0ToD3(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     KIRQL               Irql;
@@ -561,7 +563,7 @@ done:
 // This function must not touch pageable code or data
 static DECLSPEC_NOINLINE VOID
 PdoS4ToS3(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     Trace("(%s) ====>\n", __PdoGetName(Pdo));
@@ -577,7 +579,7 @@ PdoS4ToS3(
 // This function must not touch pageable code or data
 static DECLSPEC_NOINLINE VOID
 PdoS3ToS4(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     Trace("(%s) ====>\n", __PdoGetName(Pdo));
@@ -592,8 +594,8 @@ PdoS3ToS4(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoStartDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -634,8 +636,8 @@ fail1:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryStopDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -651,8 +653,8 @@ PdoQueryStopDevice(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoCancelStopDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -668,8 +670,8 @@ PdoCancelStopDevice(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoStopDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -691,8 +693,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryRemoveDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -708,8 +710,8 @@ PdoQueryRemoveDevice(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoCancelRemoveDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -728,8 +730,8 @@ PdoCancelRemoveDevice(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoSurpriseRemoval(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -747,8 +749,8 @@ PdoSurpriseRemoval(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoRemoveDevice(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PXENCONS_FDO        Fdo = __PdoGetFdo(Pdo);
@@ -794,8 +796,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryDeviceRelations(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -809,7 +811,7 @@ PdoQueryDeviceRelations(
     if (StackLocation->Parameters.QueryDeviceRelations.Type != TargetDeviceRelation)
         goto done;
 
-    Relations = ExAllocatePoolWithTag(PagedPool, sizeof(DEVICE_RELATIONS), PDO_POOL);
+    Relations = __AllocatePoolWithTag(PagedPool, sizeof(DEVICE_RELATIONS), PDO_POOL);
 
     status = STATUS_NO_MEMORY;
     if (Relations == NULL)
@@ -833,8 +835,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryCapabilities(
-    IN  PXENCONS_PDO        Pdo,
-    IN  PIRP                Irp
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ PIRP               Irp
     )
 {
     PIO_STACK_LOCATION      StackLocation;
@@ -901,8 +903,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryDeviceText(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -927,7 +929,7 @@ PdoQueryDeviceText(
         goto done;
     }
 
-    Buffer = ExAllocatePoolWithTag(PagedPool, MAXTEXTLEN, PDO_POOL);
+    Buffer = __AllocatePoolWithTag(PagedPool, MAXTEXTLEN, PDO_POOL);
 
     status = STATUS_NO_MEMORY;
     if (Buffer == NULL)
@@ -986,8 +988,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoReadConfig(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     UNREFERENCED_PARAMETER(Pdo);
@@ -1000,8 +1002,8 @@ PdoReadConfig(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoWriteConfig(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     UNREFERENCED_PARAMETER(Pdo);
@@ -1016,8 +1018,8 @@ PdoWriteConfig(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryId(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1055,7 +1057,7 @@ PdoQueryId(
         goto done;
     }
 
-    Buffer = ExAllocatePoolWithTag(PagedPool, Id.MaximumLength, PDO_POOL);
+    Buffer = __AllocatePoolWithTag(PagedPool, Id.MaximumLength, PDO_POOL);
 
     status = STATUS_NO_MEMORY;
     if (Buffer == NULL)
@@ -1085,8 +1087,7 @@ PdoQueryId(
 
         status = RtlStringCbPrintfW(Buffer,
                                     Id.MaximumLength,
-                                    L"XENCONS\\VEN_%hs&DEV_CONSOLE",
-                                    __PdoGetVendorName(Pdo));
+                                    L"XENCONS\\VEN_" VENDOR_PREFIX_STR "&DEV_CONSOLE");
         ASSERT(NT_SUCCESS(status));
 
         Buffer += wcslen(Buffer);
@@ -1168,8 +1169,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryBusInformation(
-    IN  PXENCONS_PDO        Pdo,
-    IN  PIRP                Irp
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ PIRP               Irp
     )
 {
     PPNP_BUS_INFORMATION    Info;
@@ -1177,7 +1178,7 @@ PdoQueryBusInformation(
 
     UNREFERENCED_PARAMETER(Pdo);
 
-    Info = ExAllocatePoolWithTag(PagedPool, sizeof(PNP_BUS_INFORMATION), PDO_POOL);
+    Info = __AllocatePoolWithTag(PagedPool, sizeof(PNP_BUS_INFORMATION), PDO_POOL);
 
     status = STATUS_NO_MEMORY;
     if (Info == NULL)
@@ -1201,8 +1202,8 @@ done:
 
 static NTSTATUS
 PdoDelegateIrp(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     return FdoDelegateIrp(__PdoGetFdo(Pdo), Irp);
@@ -1210,8 +1211,8 @@ PdoDelegateIrp(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDeviceUsageNotification(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -1226,8 +1227,8 @@ PdoDeviceUsageNotification(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoEject(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PXENCONS_FDO        Fdo = __PdoGetFdo(Pdo);
@@ -1255,8 +1256,8 @@ PdoEject(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchPnp(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1356,8 +1357,8 @@ PdoDispatchPnp(
 
 static FORCEINLINE NTSTATUS
 __PdoSetDevicePower(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1407,12 +1408,12 @@ __PdoSetDevicePower(
 
 static NTSTATUS
 PdoDevicePower(
-    IN  PXENCONS_THREAD Self,
-    IN  PVOID           Context
+    _In_ PXENCONS_THREAD    Self,
+    _In_ PVOID              Context
     )
 {
-    PXENCONS_PDO        Pdo = Context;
-    PKEVENT             Event;
+    PXENCONS_PDO            Pdo = Context;
+    PKEVENT                 Event;
 
     Event = ThreadGetEvent(Self);
 
@@ -1445,15 +1446,15 @@ PdoDevicePower(
     return STATUS_SUCCESS;
 }
 
-__drv_functionClass(REQUEST_POWER_COMPLETE)
-__drv_sameIRQL
+_Function_class_(REQUEST_POWER_COMPLETE)
+_IRQL_requires_same_
 VOID
 __PdoRequestSetDevicePower(
-    IN  PDEVICE_OBJECT      DeviceObject,
-    IN  UCHAR               MinorFunction,
-    IN  POWER_STATE         PowerState,
-    IN  PVOID               Context,
-    IN  PIO_STATUS_BLOCK    IoStatus
+    _In_ PDEVICE_OBJECT     DeviceObject,
+    _In_ UCHAR              MinorFunction,
+    _In_ POWER_STATE        PowerState,
+    _In_ PVOID              Context,
+    _In_ PIO_STATUS_BLOCK   IoStatus
     )
 {
     PKEVENT                 Event = Context;
@@ -1469,8 +1470,8 @@ __PdoRequestSetDevicePower(
 
 static VOID
 PdoRequestSetDevicePower(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_POWER_STATE  DeviceState
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_POWER_STATE DeviceState
     )
 {
     POWER_STATE             PowerState;
@@ -1516,8 +1517,8 @@ DevicePowerStateMap[PowerSystemMaximum] =
 
 static FORCEINLINE NTSTATUS
 __PdoSetSystemPower(
-    IN  PXENCONS_PDO        Pdo,
-    IN  PIRP                Irp
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ PIRP               Irp
     )
 {
     PIO_STACK_LOCATION      StackLocation;
@@ -1533,6 +1534,8 @@ __PdoSetSystemPower(
           PowerSystemStateName(SystemState),
           PowerActionName(PowerAction));
 
+    ASSERT(SystemState >= PowerSystemUnspecified &&
+           SystemState < PowerSystemMaximum);
     ASSERT3U(PowerAction, <, PowerActionShutdown);
 
     if (__PdoGetSystemPowerState(Pdo) > SystemState) {
@@ -1577,12 +1580,12 @@ __PdoSetSystemPower(
 
 static NTSTATUS
 PdoSystemPower(
-    IN  PXENCONS_THREAD Self,
-    IN  PVOID           Context
+    _In_ PXENCONS_THREAD    Self,
+    _In_ PVOID              Context
     )
 {
-    PXENCONS_PDO        Pdo = Context;
-    PKEVENT             Event;
+    PXENCONS_PDO            Pdo = Context;
+    PKEVENT                 Event;
 
     Event = ThreadGetEvent(Self);
 
@@ -1617,8 +1620,8 @@ PdoSystemPower(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoSetPower(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1676,8 +1679,8 @@ done:
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoQueryPower(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -1694,8 +1697,8 @@ PdoQueryPower(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchPower(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1725,8 +1728,8 @@ PdoDispatchPower(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchCreate(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1746,8 +1749,8 @@ PdoDispatchCreate(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchCleanup(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1767,8 +1770,8 @@ PdoDispatchCleanup(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchClose(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -1785,8 +1788,8 @@ PdoDispatchClose(
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchReadWriteControl(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -1794,22 +1797,18 @@ PdoDispatchReadWriteControl(
     status = XENCONS_CONSOLE_ABI(PutQueue,
                                  &Pdo->Abi,
                                  Irp);
-    if (status == STATUS_PENDING) {
-        IoMarkIrpPending(Irp);
-        goto done;
+    if (status != STATUS_PENDING) {
+        Irp->IoStatus.Status = status;
+        IoCompleteRequest(Irp, IO_NO_INCREMENT);
     }
 
-    Irp->IoStatus.Status = status;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-
-done:
     return status;
 }
 
 static DECLSPEC_NOINLINE NTSTATUS
 PdoDispatchDefault(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     NTSTATUS            status;
@@ -1824,8 +1823,8 @@ PdoDispatchDefault(
 
 NTSTATUS
 PdoDispatch(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -1870,7 +1869,7 @@ PdoDispatch(
 
 NTSTATUS
 PdoResume(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     NTSTATUS            status;
@@ -1892,7 +1891,7 @@ fail1:
 
 VOID
 PdoSuspend(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     Trace("(%s) ====>\n", __PdoGetName(Pdo));
@@ -1904,23 +1903,25 @@ PdoSuspend(
 
 NTSTATUS
 PdoCreate(
-    IN  PXENCONS_FDO    Fdo,
-    IN  PANSI_STRING    Device
+    _In_ PXENCONS_FDO       Fdo,
+    _In_opt_ PANSI_STRING   Device
     )
 {
-    PDEVICE_OBJECT      PhysicalDeviceObject;
-    PXENCONS_DX         Dx;
-    PXENCONS_PDO        Pdo;
-    NTSTATUS            status;
+    PDEVICE_OBJECT          PhysicalDeviceObject;
+    PXENCONS_DX             Dx;
+    PXENCONS_PDO            Pdo;
+    NTSTATUS                status;
 
 #pragma prefast(suppress:28197) // Possibly leaking memory 'PhysicalDeviceObject'
-    status = IoCreateDevice(DriverGetDriverObject(),
-                            sizeof(XENCONS_DX),
-                            NULL,
-                            FILE_DEVICE_UNKNOWN,
-                            FILE_DEVICE_SECURE_OPEN | FILE_AUTOGENERATED_DEVICE_NAME,
-                            FALSE,
-                            &PhysicalDeviceObject);
+    status = IoCreateDeviceSecure(DriverGetDriverObject(),
+                                  sizeof(XENCONS_DX),
+                                  NULL,
+                                  FILE_DEVICE_UNKNOWN,
+                                  FILE_DEVICE_SECURE_OPEN | FILE_AUTOGENERATED_DEVICE_NAME,
+                                  FALSE,
+                                  &SDDL_DEVOBJ_SYS_ALL_ADM_ALL,
+                                  &GUID_XENCONS_DEVICE_CLASS,
+                                  &PhysicalDeviceObject);
     if (!NT_SUCCESS(status))
         goto fail1;
 
@@ -2046,7 +2047,7 @@ fail1:
 
 VOID
 PdoDestroy(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     )
 {
     PXENCONS_DX         Dx = Pdo->Dx;
@@ -2102,4 +2103,3 @@ PdoDestroy(
 
     IoDeleteDevice(PhysicalDeviceObject);
 }
-

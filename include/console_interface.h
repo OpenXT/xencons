@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -52,7 +53,7 @@ typedef struct _XENBUS_CONSOLE_WAKEUP   XENBUS_CONSOLE_WAKEUP, *PXENBUS_CONSOLE_
 */
 typedef NTSTATUS
 (*XENBUS_CONSOLE_ACQUIRE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CONSOLE_RELEASE
@@ -62,7 +63,7 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_CONSOLE_RELEASE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CONSOLE_CAN_READ
@@ -74,7 +75,7 @@ typedef VOID
 */
 typedef BOOLEAN
 (*XENBUS_CONSOLE_CAN_READ)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CONSOLE_READ
@@ -88,9 +89,9 @@ typedef BOOLEAN
 */
 typedef ULONG
 (*XENBUS_CONSOLE_READ)(
-    IN  PINTERFACE  Interface,
-    IN  PCHAR       Data,
-    IN  ULONG       Length
+    _In_ PINTERFACE Interface,
+    _In_ PSTR       Data,
+    _In_ ULONG      Length
     );
 
 /*! \typedef XENBUS_CONSOLE_CAN_WRITE
@@ -102,7 +103,7 @@ typedef ULONG
 */
 typedef BOOLEAN
 (*XENBUS_CONSOLE_CAN_WRITE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CONSOLE_WRITE
@@ -116,9 +117,9 @@ typedef BOOLEAN
 */
 typedef ULONG
 (*XENBUS_CONSOLE_WRITE)(
-    IN  PINTERFACE  Interface,
-    IN  PCHAR       Data,
-    IN  ULONG       Length
+    _In_ PINTERFACE Interface,
+    _In_ PSTR       Data,
+    _In_ ULONG      Length
     );
 
 /*! \typedef XENBUS_CONSOLE_WAKEUP_ADD
@@ -131,9 +132,9 @@ typedef ULONG
 */
 typedef NTSTATUS
 (*XENBUS_CONSOLE_WAKEUP_ADD)(
-    IN  PINTERFACE          	Interface,
-    IN  PKEVENT             	Event,
-    OUT PXENBUS_CONSOLE_WAKEUP	*Wakeup
+    _In_ PINTERFACE                 Interface,
+    _In_ PKEVENT                    Event,
+    _Outptr_ PXENBUS_CONSOLE_WAKEUP *Wakeup
     );
 
 /*! \typedef XENBUS_CONSOLE_WAKEUP_REMOVE
@@ -144,8 +145,8 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_CONSOLE_WAKEUP_REMOVE)(
-    IN  PINTERFACE              Interface,
-    IN  PXENBUS_CONSOLE_WAKEUP  Wakeup
+    _In_ PINTERFACE             Interface,
+    _In_ PXENBUS_CONSOLE_WAKEUP Wakeup
     );
 
 // {04c4f738-034a-4268-bd20-a92ac90d4f82}

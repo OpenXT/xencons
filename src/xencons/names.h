@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -34,9 +35,9 @@
 
 #include <ntddk.h>
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PowerTypeName(
-    IN  POWER_STATE_TYPE    Type
+    _In_ POWER_STATE_TYPE   Type
     )
 {
 #define _POWER_TYPE_NAME(_Type) \
@@ -54,9 +55,9 @@ PowerTypeName(
 #undef  _POWER_ACTION_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PowerSystemStateName(
-    IN  SYSTEM_POWER_STATE State
+    _In_ SYSTEM_POWER_STATE State
     )
 {
 #define _POWER_SYSTEM_STATE_NAME(_State)    \
@@ -80,9 +81,9 @@ PowerSystemStateName(
 #undef  _POWER_SYSTEM_STATE_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PowerDeviceStateName(
-    IN  DEVICE_POWER_STATE State
+    _In_ DEVICE_POWER_STATE State
     )
 {
 #define _POWER_DEVICE_STATE_NAME(_State)    \
@@ -104,9 +105,9 @@ PowerDeviceStateName(
 #undef  _POWER_DEVICE_STATE_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PowerActionName(
-    IN  POWER_ACTION    Type
+    _In_ POWER_ACTION   Type
     )
 {
 #define _POWER_ACTION_NAME(_Type)   \
@@ -130,9 +131,9 @@ PowerActionName(
 #undef  _POWER_ACTION_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PowerMinorFunctionName(
-    IN  ULONG   MinorFunction
+    _In_ ULONG  MinorFunction
     )
 {
 #define _POWER_MINOR_FUNCTION_NAME(_Function)   \
@@ -153,9 +154,9 @@ PowerMinorFunctionName(
 #undef  _POWER_MINOR_FUNCTION_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PnpMinorFunctionName(
-    IN  ULONG   Function
+    _In_ ULONG  Function
     )
 {
 #define _PNP_MINOR_FUNCTION_NAME(_Function) \
@@ -196,9 +197,9 @@ PnpMinorFunctionName(
 #undef  _PNP_MINOR_FUNCTION_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 PartialResourceDescriptorTypeName(
-    IN  UCHAR   Type
+    _In_ UCHAR  Type
     )
 {
 #define _PARTIAL_RESOURCE_DESCRIPTOR_TYPE_NAME(_Type)   \
@@ -225,9 +226,9 @@ PartialResourceDescriptorTypeName(
 #undef  _PARTIAL_RESOURCE_DESCRIPTOR_TYPE_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 DeviceUsageTypeName(
-    IN  DEVICE_USAGE_NOTIFICATION_TYPE  Type
+    _In_ DEVICE_USAGE_NOTIFICATION_TYPE Type
     )
 {
 #define _DEVICE_USAGE_TYPE_NAME(_Type)  \
@@ -247,9 +248,9 @@ DeviceUsageTypeName(
 #undef  _DEVICE_USAGE_TYPE_NAME
 }
 
-static FORCEINLINE const CHAR *
+static FORCEINLINE PCSTR
 MajorFunctionName(
-    IN  ULONG   Function
+    _In_ ULONG  Function
     )
 {
 #define _MAJOR_FUNCTION_NAME(_Function) \
