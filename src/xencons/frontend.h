@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms,
@@ -41,39 +42,39 @@ typedef struct _XENCONS_FRONTEND XENCONS_FRONTEND, *PXENCONS_FRONTEND;
 
 extern NTSTATUS
 FrontendCreate(
-    IN  PXENCONS_PDO                    Pdo,
-    OUT PXENCONS_CONSOLE_ABI_CONTEXT    *Context
+    _In_ PXENCONS_PDO                   Pdo,
+    _Out_ PXENCONS_CONSOLE_ABI_CONTEXT  *Context
     );
 
 VOID
 FrontendGetAbi(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    OUT PXENCONS_CONSOLE_ABI            Abi
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _Out_ PXENCONS_CONSOLE_ABI          Abi
     );
 
 VOID
 FrontendDestroy(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     );
 
 extern PXENCONS_PDO
 FrontendGetPdo(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     );
 
-extern PCHAR
+extern PSTR
 FrontendGetPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     );
 
-extern PCHAR
+extern PSTR
 FrontendGetBackendPath(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     );
 
 extern USHORT
 FrontendGetBackendDomain(
-    IN  PXENCONS_FRONTEND   Frontend
+    _In_ PXENCONS_FRONTEND  Frontend
     );
 
 #endif  // _XENCONS_FRONTEND_H

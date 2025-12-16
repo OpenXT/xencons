@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms,
@@ -40,40 +41,40 @@ typedef PVOID *PXENCONS_CONSOLE_ABI_CONTEXT;
 
 typedef NTSTATUS
 (*XENCONS_CONSOLE_ABI_ACQUIRE)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     );
 
 typedef VOID
 (*XENCONS_CONSOLE_ABI_RELEASE)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     );
 
 typedef NTSTATUS
 (*XENCONS_CONSOLE_ABI_D3TOD0)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     );
 
 typedef VOID
 (*XENCONS_CONSOLE_ABI_D0TOD3)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context
     );
 
 typedef NTSTATUS
 (*XENCONS_CONSOLE_ABI_OPEN)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PFILE_OBJECT                    FileObject
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PFILE_OBJECT                   FileObject
     );
 
 typedef NTSTATUS
 (*XENCONS_CONSOLE_ABI_CLOSE)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PFILE_OBJECT                    FileObject
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PFILE_OBJECT                   FileObject
     );
 
 typedef NTSTATUS
 (*XENCONS_CONSOLE_ABI_PUT_QUEUE)(
-    IN  PXENCONS_CONSOLE_ABI_CONTEXT    Context,
-    IN  PIRP                            Irp
+    _In_ PXENCONS_CONSOLE_ABI_CONTEXT   Context,
+    _In_ PIRP                           Irp
     );
 
 typedef struct _XENCONS_CONSOLE_ABI {

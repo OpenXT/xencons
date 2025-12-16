@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -38,37 +39,37 @@ typedef struct _XENCONS_THREAD XENCONS_THREAD, *PXENCONS_THREAD;
 
 typedef NTSTATUS (*XENCONS_THREAD_FUNCTION)(PXENCONS_THREAD, PVOID);
 
-__drv_requiresIRQL(PASSIVE_LEVEL)
+_IRQL_requires_(PASSIVE_LEVEL)
 extern NTSTATUS
 ThreadCreate(
-    IN  XENCONS_THREAD_FUNCTION Function,
-    IN  PVOID                   Context,
-    OUT PXENCONS_THREAD         *Thread
+    _In_ XENCONS_THREAD_FUNCTION Function,
+    _In_ PVOID                   Context,
+    _Outptr_ PXENCONS_THREAD     *Thread
     );
 
 extern PKEVENT
 ThreadGetEvent(
-    IN  PXENCONS_THREAD Self
+    _In_ PXENCONS_THREAD Self
     );
 
 extern BOOLEAN
 ThreadIsAlerted(
-    IN  PXENCONS_THREAD Self
+    _In_ PXENCONS_THREAD Self
     );
 
 extern VOID
 ThreadWake(
-    IN  PXENCONS_THREAD Thread
+    _In_ PXENCONS_THREAD Thread
     );
 
 extern VOID
 ThreadAlert(
-    IN  PXENCONS_THREAD Thread
+    _In_ PXENCONS_THREAD Thread
     );
 
 extern VOID
 ThreadJoin(
-    IN  PXENCONS_THREAD Thread
+    _In_ PXENCONS_THREAD Thread
     );
 
 #endif  // _XENCONS_THREAD_H

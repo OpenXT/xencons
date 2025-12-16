@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms,
@@ -81,7 +82,7 @@ struct _XENCONS_RING {
 
 static FORCEINLINE PVOID
 __RingAllocate(
-    IN  ULONG   Length
+    _In_ ULONG  Length
     )
 {
     return __AllocatePoolWithTag(NonPagedPool, Length, XENCONS_RING_TAG);
@@ -89,7 +90,7 @@ __RingAllocate(
 
 static FORCEINLINE VOID
 __RingFree(
-    IN  PVOID   Buffer
+    _In_ PVOID  Buffer
     )
 {
     __FreePoolWithTag(Buffer, XENCONS_RING_TAG);
@@ -99,9 +100,9 @@ IO_CSQ_INSERT_IRP_EX RingCsqInsertIrpEx;
 
 NTSTATUS
 RingCsqInsertIrpEx(
-    IN  PIO_CSQ         Csq,
-    IN  PIRP            Irp,
-    IN  PVOID           InsertContext OPTIONAL
+    _In_ PIO_CSQ        Csq,
+    _In_ PIRP           Irp,
+    _In_ PVOID          InsertContext OPTIONAL
     )
 {
     BOOLEAN             ReInsert = (BOOLEAN)(ULONG_PTR)InsertContext;
@@ -124,8 +125,8 @@ IO_CSQ_REMOVE_IRP RingCsqRemoveIrp;
 
 VOID
 RingCsqRemoveIrp(
-    IN  PIO_CSQ     Csq,
-    IN  PIRP        Irp
+    _In_ PIO_CSQ    Csq,
+    _In_ PIRP       Irp
     )
 {
     UNREFERENCED_PARAMETER(Csq);
@@ -133,13 +134,12 @@ RingCsqRemoveIrp(
     RemoveEntryList(&Irp->Tail.Overlay.ListEntry);
 }
 
-IO_CSQ_PEEK_NEXT_IRP RingCsqPeekNextIrp;
-
+_Function_class_(IO_CSQ_PEEK_NEXT_IRP)
 PIRP
 RingCsqPeekNextIrp(
-    IN  PIO_CSQ     Csq,
-    IN  PIRP        Irp,
-    IN  PVOID       PeekContext OPTIONAL
+    _In_ PIO_CSQ    Csq,
+    _In_ PIRP       Irp,
+    _In_opt_ PVOID  PeekContext
     )
 {
     PXENCONS_QUEUE  Queue;
@@ -172,44 +172,49 @@ RingCsqPeekNextIrp(
 #pragma warning(push)
 #pragma warning(disable:28167) // function changes IRQL
 
-IO_CSQ_ACQUIRE_LOCK RingCsqAcquireLock;
-
+_Function_class_(IO_CSQ_ACQUIRE_LOCK)
+_Requires_lock_not_held_(Csq)
+_Acquires_lock_(Csq)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_raises_(DISPATCH_LEVEL)
 VOID
 RingCsqAcquireLock(
-    IN  PIO_CSQ     Csq,
-    OUT PKIRQL      Irql
+    _In_ PIO_CSQ                            Csq,
+    _Out_ _At_(*Irql, _IRQL_saves_) PKIRQL  Irql
     )
 {
-    PXENCONS_QUEUE  Queue;
+    PXENCONS_QUEUE                          Queue;
 
     Queue = CONTAINING_RECORD(Csq, XENCONS_QUEUE, Csq);
 
     KeAcquireSpinLock(&Queue->Lock, Irql);
 }
 
-IO_CSQ_RELEASE_LOCK RingCsqReleaseLock;
-
+_Function_class_(IO_CSQ_RELEASE_LOCK)
+_Requires_lock_held_(Csq)
+_Releases_lock_(Csq)
+_IRQL_requires_(DISPATCH_LEVEL)
 VOID
 RingCsqReleaseLock(
-    IN  PIO_CSQ     Csq,
-    IN  KIRQL       Irql
+    _In_ PIO_CSQ                Csq,
+    _In_ _IRQL_restores_ KIRQL  Irql
     )
 {
-    PXENCONS_QUEUE  Queue;
+    PXENCONS_QUEUE              Queue;
 
     Queue = CONTAINING_RECORD(Csq, XENCONS_QUEUE, Csq);
 
+    _Analysis_assume_lock_held_(Queue->Lock);
     KeReleaseSpinLock(&Queue->Lock, Irql);
 }
 
 #pragma warning(pop)
 
-IO_CSQ_COMPLETE_CANCELED_IRP RingCsqCompleteCanceledIrp;
-
+_Function_class_(IO_CSQ_COMPLETE_CANCELED_IRP)
 VOID
 RingCsqCompleteCanceledIrp(
-    IN  PIO_CSQ         Csq,
-    IN  PIRP            Irp
+    _In_ PIO_CSQ        Csq,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -232,8 +237,8 @@ RingCsqCompleteCanceledIrp(
 
 static FORCEINLINE VOID
 __RingCancelRequests(
-    IN  PXENCONS_RING   Ring,
-    IN  PFILE_OBJECT    FileObject
+    _In_ PXENCONS_RING      Ring,
+    _In_opt_ PFILE_OBJECT   FileObject
     )
 {
     for (;;) {
@@ -256,9 +261,12 @@ __RingCancelRequests(
     }
 }
 
+_Requires_lock_not_held_(*Argument)
+_Acquires_lock_(*Argument)
+_IRQL_requires_min_(DISPATCH_LEVEL)
 static VOID
 RingAcquireLock(
-    IN  PVOID       Argument
+    _In_ PVOID      Argument
     )
 {
     PXENCONS_RING   Ring = Argument;
@@ -266,21 +274,24 @@ RingAcquireLock(
     KeAcquireSpinLockAtDpcLevel(&Ring->Lock);
 }
 
+_Requires_lock_held_(*Argument)
+_Releases_lock_(*Argument)
+_IRQL_requires_min_(DISPATCH_LEVEL)
 static VOID
 RingReleaseLock(
-    IN  PVOID       Argument
+    _In_ PVOID      Argument
     )
 {
     PXENCONS_RING   Ring = Argument;
 
-#pragma prefast(suppress:26110)
+    _Analysis_assume_lock_held_(Ring->Lock);
     KeReleaseSpinLockFromDpcLevel(&Ring->Lock);
 }
 
 NTSTATUS
 RingOpen(
-    IN  PXENCONS_RING   Ring,
-    IN  PFILE_OBJECT    FileObject
+    _In_ PXENCONS_RING  Ring,
+    _In_ PFILE_OBJECT   FileObject
     )
 {
     UNREFERENCED_PARAMETER(Ring);
@@ -290,8 +301,8 @@ RingOpen(
 
 NTSTATUS
 RingClose(
-    IN  PXENCONS_RING   Ring,
-    IN  PFILE_OBJECT    FileObject
+    _In_ PXENCONS_RING  Ring,
+    _In_ PFILE_OBJECT   FileObject
     )
 {
     __RingCancelRequests(Ring, FileObject);
@@ -300,8 +311,8 @@ RingClose(
 
 NTSTATUS
 RingPutQueue(
-    IN  PXENCONS_RING   Ring,
-    IN  PIRP            Irp
+    _In_ PXENCONS_RING  Ring,
+    _In_ PIRP           Irp
     )
 {
     PIO_STACK_LOCATION  StackLocation;
@@ -343,9 +354,9 @@ fail1:
 
 static ULONG
 RingCopyFromRead(
-    IN  PXENCONS_RING           Ring,
-    IN  PCHAR                   Data,
-    IN  ULONG                   Length
+    _In_ PXENCONS_RING          Ring,
+    _In_ PCHAR                  Data,
+    _In_ ULONG                  Length
     )
 {
     struct xencons_interface    *Shared;
@@ -397,9 +408,9 @@ RingCopyFromRead(
 
 static ULONG
 RingCopyToWrite(
-    IN  PXENCONS_RING           Ring,
-    IN  PCHAR                   Data,
-    IN  ULONG                   Length
+    _In_ PXENCONS_RING          Ring,
+    _In_ PCHAR                  Data,
+    _In_ ULONG                  Length
     )
 {
     struct xencons_interface    *Shared;
@@ -451,7 +462,7 @@ RingCopyToWrite(
 
 static BOOLEAN
 RingPoll(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     PIRP                Irp;
@@ -535,16 +546,16 @@ RingPoll(
     return FALSE;
 }
 
-__drv_functionClass(KDEFERRED_ROUTINE)
-__drv_maxIRQL(DISPATCH_LEVEL)
-__drv_minIRQL(PASSIVE_LEVEL)
-__drv_sameIRQL
+_Function_class_(KDEFERRED_ROUTINE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_min_(PASSIVE_LEVEL)
+_IRQL_requires_same_
 static VOID
 RingDpc(
-    IN  PKDPC               Dpc,
-    IN  PVOID               Context,
-    IN  PVOID               Argument1,
-    IN  PVOID               Argument2
+    _In_ PKDPC          Dpc,
+    _In_ PVOID          Context,
+    _In_ PVOID          Argument1,
+    _In_ PVOID          Argument2
     )
 {
     PXENCONS_RING       Ring = Context;
@@ -582,15 +593,14 @@ RingDpc(
                          FALSE);
 }
 
-KSERVICE_ROUTINE    RingEvtchnCallback;
-
+_Function_class_(KSERVICE_ROUTINE)
 BOOLEAN
 RingEvtchnCallback(
-    IN  PKINTERRUPT InterruptObject,
-    IN  PVOID       Argument
+    _In_ PKINTERRUPT    InterruptObject,
+    _In_ PVOID          Argument
     )
 {
-    PXENCONS_RING   Ring = Argument;
+    PXENCONS_RING       Ring = Argument;
 
     UNREFERENCED_PARAMETER(InterruptObject);
 
@@ -606,8 +616,8 @@ RingEvtchnCallback(
 
 static VOID
 RingDebugCallback(
-    IN  PVOID       Argument,
-    IN  BOOLEAN     Crashing
+    _In_ PVOID      Argument,
+    _In_ BOOLEAN    Crashing
     )
 {
     PXENCONS_RING   Ring = Argument;
@@ -638,7 +648,7 @@ RingDebugCallback(
 
 NTSTATUS
 RingEnable(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     Trace("====>\n");
@@ -656,7 +666,7 @@ RingEnable(
 
 VOID
 RingDisable(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     Trace("====>\n");
@@ -672,7 +682,7 @@ RingDisable(
 
 NTSTATUS
 RingConnect(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     CHAR                Name[MAXNAMELEN];
@@ -708,6 +718,7 @@ RingConnect(
     status = XENBUS_GNTTAB(CreateCache,
                            &Ring->GnttabInterface,
                            Name,
+                           0,
                            0,
                            RingAcquireLock,
                            RingReleaseLock,
@@ -837,8 +848,8 @@ fail1:
 
 NTSTATUS
 RingStoreWrite(
-    IN  PXENCONS_RING   Ring,
-    IN  PVOID           Transaction
+    _In_ PXENCONS_RING  Ring,
+    _In_ PVOID          Transaction
     )
 {
     ULONG               Port;
@@ -886,7 +897,7 @@ fail1:
 
 VOID
 RingDisconnect(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     Trace("====>\n");
@@ -940,8 +951,8 @@ RingDisconnect(
 
 NTSTATUS
 RingCreate(
-    IN  PXENCONS_FRONTEND   Frontend,
-    OUT PXENCONS_RING       *Ring
+    _In_ PXENCONS_FRONTEND  Frontend,
+    _Out_ PXENCONS_RING     *Ring
     )
 {
     NTSTATUS                status;
@@ -1020,11 +1031,11 @@ fail1:
 
 VOID
 RingDestroy(
-    IN  PXENCONS_RING   Ring
+    _In_ PXENCONS_RING  Ring
     )
 {
     ASSERT3U(KeGetCurrentIrql(), == , PASSIVE_LEVEL);
-    
+
     // Cancel all outstanding IRPs
     __RingCancelRequests(Ring, NULL);
 

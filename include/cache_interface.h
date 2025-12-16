@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -53,7 +54,7 @@ typedef struct _XENBUS_CACHE    XENBUS_CACHE, *PXENBUS_CACHE;
 */
 typedef NTSTATUS
 (*XENBUS_CACHE_ACQUIRE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CACHE_RELEASE
@@ -63,7 +64,7 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_CACHE_RELEASE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_CACHE_CTOR
@@ -78,8 +79,8 @@ typedef VOID
 */
 typedef NTSTATUS
 (*XENBUS_CACHE_CTOR)(
-    IN  PVOID   Argument,
-    IN  PVOID   Object
+    _In_ PVOID  Argument,
+    _In_ PVOID  Object
     );
 
 /*! \typedef XENBUS_CACHE_DTOR
@@ -93,8 +94,8 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_CACHE_DTOR)(
-    IN  PVOID   Argument,
-    IN  PVOID   Object
+    _In_ PVOID  Argument,
+    _In_ PVOID  Object
     );
 
 /*! \typedef XENBUS_CACHE_ACQUIRE_LOCK
@@ -107,7 +108,7 @@ typedef VOID
 */
 typedef VOID
 (*XENBUS_CACHE_ACQUIRE_LOCK)(
-    IN  PVOID   Argument
+    _In_ PVOID  Argument
     );
 
 /*! \typedef XENBUS_CACHE_RELEASE_LOCK
@@ -120,7 +121,21 @@ typedef VOID
 */
 typedef VOID
 (*XENBUS_CACHE_RELEASE_LOCK)(
-    IN  PVOID   Argument
+    _In_ PVOID  Argument
+    );
+
+typedef NTSTATUS
+(*XENBUS_CACHE_CREATE_V1)(
+    _In_ PINTERFACE                 Interface,
+    _In_ PCSTR                      Name,
+    _In_ ULONG                      Size,
+    _In_ ULONG                      Reservation,
+    _In_ XENBUS_CACHE_CTOR          Ctor,
+    _In_ XENBUS_CACHE_DTOR          Dtor,
+    _In_ XENBUS_CACHE_ACQUIRE_LOCK  AcquireLock,
+    _In_ XENBUS_CACHE_RELEASE_LOCK  ReleaseLock,
+    _In_opt_ PVOID                  Argument,
+    _Outptr_ PXENBUS_CACHE          *Cache
     );
 
 /*! \typedef XENBUS_CACHE_CREATE
@@ -130,6 +145,7 @@ typedef VOID
     \param Name A name for the cache which will be used in debug output
     \param Size The size of each object in bytes
     \param Reservation The target minimum population of the cache
+    \param Cap The maximum population of the cache
     \param Ctor A callback which is invoked when a new object created
     \param Dtor A callback which is invoked when an object is destroyed
     \param AcquireLock A callback invoked to acquire a spinlock
@@ -142,16 +158,17 @@ typedef VOID
 */
 typedef NTSTATUS
 (*XENBUS_CACHE_CREATE)(
-    IN  PINTERFACE                  Interface,
-    IN  const CHAR                  *Name,
-    IN  ULONG                       Size,
-    IN  ULONG                       Reservation,
-    IN  XENBUS_CACHE_CTOR           Ctor,
-    IN  XENBUS_CACHE_DTOR           Dtor,
-    IN  XENBUS_CACHE_ACQUIRE_LOCK   AcquireLock,
-    IN  XENBUS_CACHE_RELEASE_LOCK   ReleaseLock,
-    IN  PVOID                       Argument OPTIONAL,
-    OUT PXENBUS_CACHE               *Cache
+    _In_ PINTERFACE                 Interface,
+    _In_ PCSTR                      Name,
+    _In_ ULONG                      Size,
+    _In_ ULONG                      Reservation,
+    _In_ ULONG                      Cap,
+    _In_ XENBUS_CACHE_CTOR          Ctor,
+    _In_ XENBUS_CACHE_DTOR          Dtor,
+    _In_ XENBUS_CACHE_ACQUIRE_LOCK  AcquireLock,
+    _In_ XENBUS_CACHE_RELEASE_LOCK  ReleaseLock,
+    _In_opt_ PVOID                  Argument,
+    _Outptr_ PXENBUS_CACHE          *Cache
     );
 
 /*! \typedef XENBUS_CACHE_GET
@@ -164,9 +181,9 @@ typedef NTSTATUS
 */
 typedef PVOID
 (*XENBUS_CACHE_GET)(
-    IN  PINTERFACE      Interface,
-    IN  PXENBUS_CACHE   Cache,
-    IN  BOOLEAN         Locked
+    _In_ PINTERFACE     Interface,
+    _In_ PXENBUS_CACHE  Cache,
+    _In_ BOOLEAN        Locked
     );
 
 /*! \typedef XENBUS_CACHE_PUT
@@ -179,10 +196,10 @@ typedef PVOID
 */
 typedef VOID
 (*XENBUS_CACHE_PUT)(
-    IN  PINTERFACE      Interface,
-    IN  PXENBUS_CACHE   Cache,
-    IN  PVOID           Object,
-    IN  BOOLEAN         Locked
+    _In_ PINTERFACE     Interface,
+    _In_ PXENBUS_CACHE  Cache,
+    _In_ PVOID          Object,
+    _In_ BOOLEAN        Locked
     );
 
 /*! \typedef XENBUS_CACHE_DESTROY
@@ -195,8 +212,8 @@ typedef VOID
 */
 typedef VOID
 (*XENBUS_CACHE_DESTROY)(
-    IN  PINTERFACE      Interface,
-    IN  PXENBUS_CACHE   Cache
+    _In_ PINTERFACE     Interface,
+    _In_ PXENBUS_CACHE  Cache
     );
 
 // {A98DFD78-416A-4949-92A5-E084F2F4B44E}
@@ -211,13 +228,27 @@ struct _XENBUS_CACHE_INTERFACE_V1 {
     INTERFACE               Interface;
     XENBUS_CACHE_ACQUIRE    CacheAcquire;
     XENBUS_CACHE_RELEASE    CacheRelease;
+    XENBUS_CACHE_CREATE_V1  CacheCreateVersion1;
+    XENBUS_CACHE_GET        CacheGet;
+    XENBUS_CACHE_PUT        CachePut;
+    XENBUS_CACHE_DESTROY    CacheDestroy;
+};
+
+/*! \struct _XENBUS_CACHE_INTERFACE_V2
+    \brief CACHE interface version 1
+    \ingroup interfaces
+*/
+struct _XENBUS_CACHE_INTERFACE_V2 {
+    INTERFACE               Interface;
+    XENBUS_CACHE_ACQUIRE    CacheAcquire;
+    XENBUS_CACHE_RELEASE    CacheRelease;
     XENBUS_CACHE_CREATE     CacheCreate;
     XENBUS_CACHE_GET        CacheGet;
     XENBUS_CACHE_PUT        CachePut;
     XENBUS_CACHE_DESTROY    CacheDestroy;
 };
 
-typedef struct _XENBUS_CACHE_INTERFACE_V1 XENBUS_CACHE_INTERFACE, *PXENBUS_CACHE_INTERFACE;
+typedef struct _XENBUS_CACHE_INTERFACE_V2 XENBUS_CACHE_INTERFACE, *PXENBUS_CACHE_INTERFACE;
 
 /*! \def XENBUS_CACHE
     \brief Macro at assist in method invocation
@@ -228,6 +259,6 @@ typedef struct _XENBUS_CACHE_INTERFACE_V1 XENBUS_CACHE_INTERFACE, *PXENBUS_CACHE
 #endif  // _WINDLL
 
 #define XENBUS_CACHE_INTERFACE_VERSION_MIN  1
-#define XENBUS_CACHE_INTERFACE_VERSION_MAX  1
+#define XENBUS_CACHE_INTERFACE_VERSION_MAX  2
 
 #endif  // _XENBUS_CACHE_INTERFACE_H

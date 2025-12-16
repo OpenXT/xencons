@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -74,7 +75,7 @@ typedef struct _XENBUS_STORE_PERMISSION {
 */
 typedef NTSTATUS
 (*XENBUS_STORE_ACQUIRE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_STORE_RELEASE
@@ -84,7 +85,7 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_STORE_RELEASE)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_STORE_FREE
@@ -95,8 +96,8 @@ typedef VOID
 */
 typedef VOID
 (*XENBUS_STORE_FREE)(
-    IN  PINTERFACE  Interface,
-    IN  PCHAR       Buffer
+    _In_ PINTERFACE Interface,
+    _In_ PSTR       Buffer
     );
 
 /*! \typedef XENBUS_STORE_READ
@@ -115,11 +116,11 @@ typedef VOID
 */
 typedef NTSTATUS
 (*XENBUS_STORE_READ)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction OPTIONAL,
-    IN  PCHAR                       Prefix OPTIONAL,
-    IN  PCHAR                       Node,
-    OUT PCHAR                       *Buffer
+    _In_ PINTERFACE                     Interface,
+    _In_opt_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_opt_ PSTR                       Prefix,
+    _In_ PSTR                           Node,
+    _Outptr_result_z_ PSTR              *Buffer
     );
 
 /*! \typedef XENBUS_STORE_PRINTF
@@ -138,11 +139,11 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_PRINTF)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction OPTIONAL,
-    IN  PCHAR                       Prefix OPTIONAL,
-    IN  PCHAR                       Node,
-    IN  const CHAR                  *Format,
+    _In_ PINTERFACE                     Interface,
+    _In_opt_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_opt_ PSTR                       Prefix,
+    _In_ PSTR                           Node,
+    _In_ PCSTR                          Format,
     ...
     );
 
@@ -158,10 +159,10 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_REMOVE)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction OPTIONAL,
-    IN  PCHAR                       Prefix OPTIONAL,
-    IN  PCHAR                       Node
+    _In_ PINTERFACE                     Interface,
+    _In_opt_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_opt_ PSTR                       Prefix,
+    _In_ PSTR                           Node
     );
 
 /*! \typedef XENBUS_STORE_DIRECTORY
@@ -180,11 +181,11 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_DIRECTORY)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction OPTIONAL,
-    IN  PCHAR                       Prefix OPTIONAL,
-    IN  PCHAR                       Node,
-    OUT PCHAR                       *Buffer
+    _In_ PINTERFACE                     Interface,
+    _In_opt_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_opt_ PSTR                       Prefix,
+    _In_ PSTR                           Node,
+    _Outptr_result_z_ PSTR              *Buffer
     );
 
 /*! \typedef XENBUS_STORE_TRANSACTION_START
@@ -195,8 +196,8 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_TRANSACTION_START)(
-    IN  PINTERFACE                  Interface,
-    OUT PXENBUS_STORE_TRANSACTION   *Transaction
+    _In_ PINTERFACE                     Interface,
+    _Outptr_ PXENBUS_STORE_TRANSACTION  *Transaction
     );
 
 /*! \typedef XENBUS_STORE_TRANSACTION_END
@@ -212,9 +213,9 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_TRANSACTION_END)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction,
-    IN  BOOLEAN                     Commit
+    _In_ PINTERFACE                 Interface,
+    _In_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_ BOOLEAN                    Commit
     );
 
 /*! \typedef XENBUS_STORE_WATCH_ADD
@@ -230,11 +231,11 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_WATCH_ADD)(
-    IN  PINTERFACE          Interface,
-    IN  PCHAR               Prefix OPTIONAL,
-    IN  PCHAR               Node,
-    IN  PKEVENT             Event,
-    OUT PXENBUS_STORE_WATCH *Watch
+    _In_ PINTERFACE                 Interface,
+    _In_opt_ PSTR                   Prefix,
+    _In_ PSTR                       Node,
+    _In_ PKEVENT                    Event,
+    _Outptr_ PXENBUS_STORE_WATCH    *Watch
     );
 
 /*! \typedef XENBUS_STORE_WATCH_REMOVE
@@ -245,8 +246,8 @@ typedef NTSTATUS
 */
 typedef NTSTATUS
 (*XENBUS_STORE_WATCH_REMOVE)(
-    IN  PINTERFACE          Interface,
-    IN  PXENBUS_STORE_WATCH Watch
+    _In_ PINTERFACE             Interface,
+    _In_ PXENBUS_STORE_WATCH    Watch
     );
 
 /*! \typedef XENBUS_STORE_POLL
@@ -261,7 +262,7 @@ typedef NTSTATUS
 */
 typedef VOID
 (*XENBUS_STORE_POLL)(
-    IN  PINTERFACE  Interface
+    _In_ PINTERFACE Interface
     );
 
 /*! \typedef XENBUS_STORE_PERMISSIONS_SET
@@ -278,37 +279,17 @@ typedef VOID
 */
 typedef NTSTATUS
 (*XENBUS_STORE_PERMISSIONS_SET)(
-    IN  PINTERFACE                  Interface,
-    IN  PXENBUS_STORE_TRANSACTION   Transaction OPTIONAL,
-    IN  PCHAR                       Prefix OPTIONAL,
-    IN  PCHAR                       Node,
-    IN  PXENBUS_STORE_PERMISSION    Permissions,
-    IN  ULONG                       NumberPermissions
+    _In_ PINTERFACE                     Interface,
+    _In_opt_ PXENBUS_STORE_TRANSACTION  Transaction,
+    _In_opt_ PSTR                       Prefix,
+    _In_ PSTR                           Node,
+    _In_ PXENBUS_STORE_PERMISSION       Permissions,
+    _In_ ULONG                          NumberPermissions
     );
 
 // {86824C3B-D34E-4753-B281-2F1E3AD214D7}
 DEFINE_GUID(GUID_XENBUS_STORE_INTERFACE,
 0x86824c3b, 0xd34e, 0x4753, 0xb2, 0x81, 0x2f, 0x1e, 0x3a, 0xd2, 0x14, 0xd7);
-
-/*! \struct _XENBUS_STORE_INTERFACE_V1
-    \brief STORE interface version 1
-    \ingroup interfaces
-*/
-struct _XENBUS_STORE_INTERFACE_V1 {
-    INTERFACE                       Interface;
-    XENBUS_STORE_ACQUIRE            StoreAcquire;
-    XENBUS_STORE_RELEASE            StoreRelease;
-    XENBUS_STORE_FREE               StoreFree;
-    XENBUS_STORE_READ               StoreRead;
-    XENBUS_STORE_PRINTF             StorePrintf;
-    XENBUS_STORE_REMOVE             StoreRemove;
-    XENBUS_STORE_DIRECTORY          StoreDirectory;
-    XENBUS_STORE_TRANSACTION_START  StoreTransactionStart;
-    XENBUS_STORE_TRANSACTION_END    StoreTransactionEnd;
-    XENBUS_STORE_WATCH_ADD          StoreWatchAdd;
-    XENBUS_STORE_WATCH_REMOVE       StoreWatchRemove;
-    XENBUS_STORE_POLL               StorePoll;
-};
 
 /*! \struct _XENBUS_STORE_INTERFACE_V2
     \brief STORE interface version 2
@@ -341,7 +322,7 @@ typedef struct _XENBUS_STORE_INTERFACE_V2 XENBUS_STORE_INTERFACE, *PXENBUS_STORE
 
 #endif  // _WINDLL
 
-#define XENBUS_STORE_INTERFACE_VERSION_MIN  1
+#define XENBUS_STORE_INTERFACE_VERSION_MIN  2
 #define XENBUS_STORE_INTERFACE_VERSION_MAX  2
 
 #endif  // _XENBUS_STORE_INTERFACE_H

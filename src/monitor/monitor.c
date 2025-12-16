@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source 1and binary forms,
@@ -39,6 +40,7 @@
 #include <cfgmgr32.h>
 #include <dbt.h>
 #include <setupapi.h>
+#include <sddl.h>
 #include <malloc.h>
 #include <assert.h>
 
@@ -71,7 +73,7 @@ typedef struct _MONITOR_CONSOLE {
     PWCHAR                  DevicePath;
     HANDLE                  DeviceHandle;
     HDEVNOTIFY              DeviceNotification;
-    PCHAR                   DeviceName; // protocol and instance?
+    PSTR                    DeviceName; // protocol and instance?
     HANDLE                  ExecutableThread;
     HANDLE                  ExecutableEvent;
     HANDLE                  DeviceThread;
@@ -92,7 +94,9 @@ typedef struct _MONITOR_CONNECTION {
 
 static MONITOR_CONTEXT MonitorContext;
 
-#define PIPE_BASE_NAME "\\\\.\\pipe\\xencons\\"
+#define PIPE_BASE_NAME "\\\\.\\pipe\\ProtectedPrefix\\Administrators\\xencons\\"
+// FILE_GENERIC_ALL for SYSTEM and Builtin\Administrators, nothing for the rest
+#define PIPE_SDDL "D:(A;;FA;;;SY)(A;;FA;;;BA)"
 
 #define MAXIMUM_BUFFER_SIZE 1024
 
@@ -107,8 +111,8 @@ static MONITOR_CONTEXT MonitorContext;
 static VOID
 #pragma prefast(suppress:6262) // Function uses '1036' bytes of stack: exceeds /analyze:stacksize'1024'
 __Log(
-    IN  const CHAR      *Format,
-    IN  ...
+    _In_ PCSTR          Format,
+    ...
     )
 {
 #if DBG
@@ -121,10 +125,7 @@ __Log(
     HRESULT             Result;
 
     va_start(Arguments, Format);
-    Result = StringCchVPrintfA(Buffer,
-                              MAXIMUM_BUFFER_SIZE,
-                              Format,
-                              Arguments);
+    Result = StringCchVPrintfA(Buffer, MAXIMUM_BUFFER_SIZE, Format, Arguments);
     va_end(Arguments);
 
     if (Result != S_OK && Result != STRSAFE_E_INSUFFICIENT_BUFFER)
@@ -136,8 +137,8 @@ __Log(
 
     Length = __min(MAXIMUM_BUFFER_SIZE - 1, Length + 2);
 
-    __analysis_assume(Length < MAXIMUM_BUFFER_SIZE);
-    __analysis_assume(Length >= 2);
+    _Analysis_assume_(Length < MAXIMUM_BUFFER_SIZE);
+    _Analysis_assume_(Length >= 2);
     Buffer[Length] = '\0';
     Buffer[Length - 1] = '\n';
     Buffer[Length - 2] = '\r';
@@ -149,37 +150,37 @@ __Log(
 
     if (Context->EventLog != NULL)
         ReportEventA(Context->EventLog,
-                    EVENTLOG_INFORMATION_TYPE,
-                    0,
-                    MONITOR_LOG,
-                    NULL,
-                    ARRAYSIZE(Strings),
-                    0,
-                    Strings,
-                    NULL);
+                     EVENTLOG_INFORMATION_TYPE,
+                     0,
+                     MONITOR_LOG,
+                     NULL,
+                     ARRAYSIZE(Strings),
+                     0,
+                     Strings,
+                     NULL);
 #endif
 }
 
 #define Log(_Format, ...) \
     __Log(__MODULE__ "|" __FUNCTION__ ": " _Format, __VA_ARGS__)
 
-static PCHAR
+static PSTR
 GetErrorMessage(
-    IN  HRESULT Error
+    _In_ HRESULT    Error
     )
 {
-    PCHAR       Message;
-    ULONG       Index;
+    PSTR            Message;
+    ULONG           Index;
 
     if (!FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                       FORMAT_MESSAGE_FROM_SYSTEM |
-                       FORMAT_MESSAGE_IGNORE_INSERTS,
-                       NULL,
-                       Error,
-                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                       (LPSTR)&Message,
-                       0,
-                       NULL))
+                        FORMAT_MESSAGE_FROM_SYSTEM |
+                        FORMAT_MESSAGE_IGNORE_INSERTS,
+                        NULL,
+                        Error,
+                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                        (LPSTR)&Message,
+                        0,
+                        NULL))
         return NULL;
 
     for (Index = 0; Message[Index] != '\0'; Index++) {
@@ -192,9 +193,9 @@ GetErrorMessage(
     return Message;
 }
 
-static const CHAR *
+static PCSTR
 ServiceStateName(
-    IN  DWORD   State
+    _In_ DWORD  State
     )
 {
 #define _STATE_NAME(_State) \
@@ -217,9 +218,9 @@ ServiceStateName(
 
 static VOID
 ReportStatus(
-    IN  DWORD           CurrentState,
-    IN  DWORD           Win32ExitCode,
-    IN  DWORD           WaitHint
+    _In_ DWORD          CurrentState,
+    _In_ DWORD          Win32ExitCode,
+    _In_ DWORD          WaitHint
     )
 {
     PMONITOR_CONTEXT    Context = &MonitorContext;
@@ -259,7 +260,7 @@ fail1:
     Error = GetLastError();
 
     {
-        PCHAR  Message;
+        PSTR    Message;
         Message = GetErrorMessage(Error);
         Log("fail1 (%s)", Message);
         LocalFree(Message);
@@ -268,7 +269,7 @@ fail1:
 
 static FORCEINLINE VOID
 __InitializeListHead(
-    IN  PLIST_ENTRY ListEntry
+    _In_ PLIST_ENTRY    ListEntry
     )
 {
     ListEntry->Flink = ListEntry;
@@ -277,8 +278,8 @@ __InitializeListHead(
 
 static FORCEINLINE VOID
 __InsertTailList(
-    IN  PLIST_ENTRY ListHead,
-    IN  PLIST_ENTRY ListEntry
+    _In_ PLIST_ENTRY    ListHead,
+    _In_ PLIST_ENTRY    ListEntry
     )
 {
     ListEntry->Blink = ListHead->Blink;
@@ -289,11 +290,11 @@ __InsertTailList(
 
 static FORCEINLINE VOID
 __RemoveEntryList(
-    IN  PLIST_ENTRY ListEntry
+    _In_ PLIST_ENTRY    ListEntry
     )
 {
-    PLIST_ENTRY     Flink;
-    PLIST_ENTRY     Blink;
+    PLIST_ENTRY         Flink;
+    PLIST_ENTRY         Blink;
 
     Flink = ListEntry->Flink;
     Blink = ListEntry->Blink;
@@ -306,9 +307,9 @@ __RemoveEntryList(
 
 static VOID
 PutString(
-    IN  HANDLE      Handle,
-    IN  PUCHAR      Buffer,
-    IN  DWORD       Length
+    _In_ HANDLE     Handle,
+    _In_ PUCHAR     Buffer,
+    _In_ DWORD      Length
     )
 {
     DWORD           Offset;
@@ -335,7 +336,7 @@ PutString(
 
 DWORD WINAPI
 ConnectionThread(
-    IN  LPVOID          Argument
+    _In_ LPVOID         Argument
     )
 {
     PMONITOR_CONNECTION Connection = (PMONITOR_CONNECTION)Argument;
@@ -424,7 +425,7 @@ fail1:
 
 DWORD WINAPI
 ServerThread(
-    IN  LPVOID          Argument
+    _In_ LPVOID         Argument
     )
 {
     PMONITOR_CONSOLE    Console = (PMONITOR_CONSOLE)Argument;
@@ -435,6 +436,7 @@ ServerThread(
     DWORD               Object;
     PMONITOR_CONNECTION Connection;
     HRESULT             Error;
+    SECURITY_ATTRIBUTES SecurityAttributes;
 
     Log("====> %s", Console->DeviceName);
 
@@ -459,17 +461,26 @@ ServerThread(
 
     Log("%s", PipeName);
 
+    ZeroMemory(&SecurityAttributes, sizeof(SECURITY_ATTRIBUTES));
+    SecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+    SecurityAttributes.bInheritHandle = FALSE;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(PIPE_SDDL,
+                                                              SDDL_REVISION_1,
+                                                              &SecurityAttributes.lpSecurityDescriptor,
+                                                              NULL))
+        goto fail3;
+
     for (;;) {
         Pipe = CreateNamedPipe(PipeName,
                                PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-                               PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+                               PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
                                PIPE_UNLIMITED_INSTANCES,
                                MAXIMUM_BUFFER_SIZE,
                                MAXIMUM_BUFFER_SIZE,
                                0,
-                               NULL);
+                               &SecurityAttributes);
         if (Pipe == INVALID_HANDLE_VALUE)
-            goto fail3;
+            goto fail4;
 
         (VOID) ConnectNamedPipe(Pipe,
                                 &Overlapped);
@@ -487,7 +498,7 @@ ServerThread(
 
         Connection = (PMONITOR_CONNECTION)malloc(sizeof(MONITOR_CONNECTION));
         if (Connection == NULL)
-            goto fail4;
+            goto fail5;
 
         __InitializeListHead(&Connection->ListEntry);
         Connection->Console = Console;
@@ -499,8 +510,10 @@ ServerThread(
                                           0,
                                           NULL);
         if (Connection->Thread == NULL)
-            goto fail5;
+            goto fail6;
     }
+
+    LocalFree(&SecurityAttributes.lpSecurityDescriptor);
 
     CloseHandle(Overlapped.hEvent);
 
@@ -508,15 +521,20 @@ ServerThread(
 
     return 0;
 
+fail6:
+    Log("fail6");
+
+    free(Connection);
+
 fail5:
     Log("fail5");
 
-    free(Connection);
+    CloseHandle(Pipe);
 
 fail4:
     Log("fail4");
 
-    CloseHandle(Pipe);
+    LocalFree(&SecurityAttributes.lpSecurityDescriptor);
 
 fail3:
     Log("fail3");
@@ -541,7 +559,7 @@ fail1:
 
 DWORD WINAPI
 DeviceThread(
-    IN  LPVOID          Argument
+    _In_ LPVOID         Argument
     )
 {
     PMONITOR_CONSOLE    Console = (PMONITOR_CONSOLE)Argument;
@@ -645,18 +663,19 @@ fail1:
     return 1;
 }
 
+_Success_(return != FALSE)
 static BOOL
 GetExecutable(
-    IN  PCHAR           DeviceName,
-    OUT PCHAR           *Executable
+    _In_ PSTR               DeviceName,
+    _Outptr_result_z_ PSTR  *Executable
     )
 {
-    PMONITOR_CONTEXT    Context = &MonitorContext;
-    HKEY                Key;
-    DWORD               MaxValueLength;
-    DWORD               ExecutableLength;
-    DWORD               Type;
-    HRESULT             Error;
+    PMONITOR_CONTEXT        Context = &MonitorContext;
+    HKEY                    Key;
+    DWORD                   MaxValueLength;
+    DWORD                   ExecutableLength;
+    DWORD                   Type;
+    HRESULT                 Error;
 
     Error = RegOpenKeyExA(Context->ParametersKey,
                           DeviceName,
@@ -688,7 +707,7 @@ GetExecutable(
     ExecutableLength = MaxValueLength;
 
     *Executable = calloc(1, ExecutableLength);
-    if (Executable == NULL)
+    if (*Executable == NULL)
         goto fail3;
 
     Error = RegQueryValueExA(Key,
@@ -744,11 +763,11 @@ fail1:
 
 DWORD WINAPI
 ExecutableThread(
-    IN  LPVOID          Argument
+    _In_ LPVOID         Argument
     )
 {
     PMONITOR_CONSOLE    Console = (PMONITOR_CONSOLE)Argument;
-    PCHAR               Executable;
+    PSTR                Executable;
     PROCESS_INFORMATION ProcessInfo;
     STARTUPINFO         StartupInfo;
     BOOL                Success;
@@ -841,7 +860,7 @@ fail1:
 
 static PMONITOR_CONSOLE
 ConsoleCreate(
-    IN  PWCHAR              DevicePath
+    _In_ PWCHAR             DevicePath
     )
 {
     PMONITOR_CONTEXT        Context = &MonitorContext;
@@ -1032,7 +1051,7 @@ fail1:
     Error = GetLastError();
 
     {
-        PCHAR  Message;
+        PSTR    Message;
         Message = GetErrorMessage(Error);
         Log("fail1 (%s)", Message);
         LocalFree(Message);
@@ -1043,7 +1062,7 @@ fail1:
 
 static FORCEINLINE VOID
 ConsoleWaitForPipes(
-    IN  PMONITOR_CONSOLE    Console
+    _In_ PMONITOR_CONSOLE   Console
     )
 {
     PLIST_ENTRY             ListEntry;
@@ -1091,7 +1110,7 @@ fail1:
 
 static VOID
 ConsoleDestroy(
-    IN  PMONITOR_CONSOLE    Console
+    _In_ PMONITOR_CONSOLE   Console
     )
 {
     Log("====> %s", Console->DeviceName);
@@ -1138,7 +1157,7 @@ ConsoleDestroy(
 
 static BOOL
 MonitorAdd(
-    IN  PWCHAR          DevicePath
+    _In_ PWCHAR         DevicePath
     )
 {
     PMONITOR_CONTEXT    Context = &MonitorContext;
@@ -1167,7 +1186,7 @@ fail1:
 
 static BOOL
 MonitorRemove(
-    IN  HANDLE          DeviceHandle
+    _In_ HANDLE         DeviceHandle
     )
 {
     PMONITOR_CONTEXT    Context = &MonitorContext;
@@ -1292,7 +1311,7 @@ MonitorEnumerate(
         Error = GetLastError();
 
         {
-            PCHAR  Message;
+            PSTR    Message;
             Message = GetErrorMessage(Error);
             Log("fail2 (%s)", Message);
             LocalFree(Message);
@@ -1309,7 +1328,7 @@ fail1:
     Error = GetLastError();
 
     {
-        PCHAR  Message;
+        PSTR    Message;
         Message = GetErrorMessage(Error);
         Log("fail1 (%s)", Message);
         LocalFree(Message);
@@ -1351,10 +1370,10 @@ MonitorRemoveAll(
 
 DWORD WINAPI
 MonitorCtrlHandlerEx(
-    IN  DWORD           Ctrl,
-    IN  DWORD           EventType,
-    IN  LPVOID          EventData,
-    IN  LPVOID          Argument
+    _In_ DWORD          Ctrl,
+    _In_ DWORD          EventType,
+    _In_ LPVOID         EventData,
+    _In_ LPVOID         Argument
     )
 {
     PMONITOR_CONTEXT    Context = &MonitorContext;

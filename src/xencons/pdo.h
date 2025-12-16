@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -36,83 +37,87 @@
 
 #include "driver.h"
 
+// {50006123-0940-4C78-A54B-A43DC83164EF}
+DEFINE_GUID(GUID_XENCONS_DEVICE_CLASS,
+    0x50006123, 0x940, 0x4c78, 0xa5, 0x4b, 0xa4, 0x3d, 0xc8, 0x31, 0x64, 0xef);
+
 extern VOID
 PdoSetDevicePnpState(
-    IN  PXENCONS_PDO        Pdo,
-    IN  DEVICE_PNP_STATE    State
+    _In_ PXENCONS_PDO       Pdo,
+    _In_ DEVICE_PNP_STATE   State
     );
 
 extern DEVICE_PNP_STATE
 PdoGetDevicePnpState(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 PdoSetMissing(
-    IN  PXENCONS_PDO    Pdo,
-    IN  const CHAR      *Reason
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PCSTR          Reason
     );
 
 extern BOOLEAN
 PdoIsMissing(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 PdoRequestEject(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern BOOLEAN
 PdoIsEjectRequested(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
-extern PCHAR
+extern PSTR
 PdoGetName(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern PXENCONS_FDO
 PdoGetFdo(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern PDEVICE_OBJECT
 PdoGetDeviceObject(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern BOOLEAN
 PdoIsDefault(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern NTSTATUS
 PdoCreate(
-    IN  PXENCONS_FDO    Fdo,
-    IN  PANSI_STRING    Device
+    _In_ PXENCONS_FDO       Fdo,
+    _In_opt_ PANSI_STRING   Device
     );
 
 extern NTSTATUS
 PdoResume(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 PdoSuspend(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 PdoDestroy(
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern NTSTATUS
 PdoDispatch(
-    IN  PXENCONS_PDO    Pdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_PDO   Pdo,
+    _In_ PIRP           Irp
     );
 
 #endif  // _XENCONS_PDO_H

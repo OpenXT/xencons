@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -42,60 +43,60 @@
 
 #include "driver.h"
 
-extern PCHAR
+extern PSTR
 FdoGetVendorName(
-    IN  PXENCONS_FDO    Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
-extern PCHAR
+extern PSTR
 FdoGetName(
-    IN  PXENCONS_FDO    Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
 extern NTSTATUS
 FdoAddPhysicalDeviceObject(
-    IN  PXENCONS_FDO    Fdo,
-    IN  PXENCONS_PDO    Pdo
+    _In_ PXENCONS_FDO   Fdo,
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 FdoRemovePhysicalDeviceObject(
-    IN  PXENCONS_FDO     Fdo,
-    IN  PXENCONS_PDO     Pdo
+    _In_ PXENCONS_FDO   Fdo,
+    _In_ PXENCONS_PDO   Pdo
     );
 
 extern VOID
 FdoAcquireMutex(
-    IN  PXENCONS_FDO     Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
 extern VOID
 FdoReleaseMutex(
-    IN  PXENCONS_FDO     Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
 extern PDEVICE_OBJECT
 FdoGetPhysicalDeviceObject(
-    IN  PXENCONS_FDO    Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
 extern NTSTATUS
 FdoDelegateIrp(
-    IN  PXENCONS_FDO    Fdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_FDO   Fdo,
+    _In_ PIRP           Irp
     );
 
 extern NTSTATUS
 FdoDispatch(
-    IN  PXENCONS_FDO    Fdo,
-    IN  PIRP            Irp
+    _In_ PXENCONS_FDO   Fdo,
+    _In_ PIRP           Irp
     );
 
 #define DECLARE_FDO_GET_INTERFACE(_Interface, _Type)    \
 extern VOID                                             \
 FdoGet ## _Interface ## Interface(                      \
-    IN  PXENCONS_FDO Fdo,                               \
-    OUT _Type        _Interface ## Interface            \
+    _In_ PXENCONS_FDO   Fdo,                            \
+    _Out_ _Type         _Interface ## Interface         \
     );
 
 DECLARE_FDO_GET_INTERFACE(Debug, PXENBUS_DEBUG_INTERFACE)
@@ -107,12 +108,12 @@ DECLARE_FDO_GET_INTERFACE(Gnttab, PXENBUS_GNTTAB_INTERFACE)
 
 extern NTSTATUS
 FdoCreate(
-    IN  PDEVICE_OBJECT  PhysicalDeviceObject
+    _In_ PDEVICE_OBJECT PhysicalDeviceObject
     );
 
 extern VOID
 FdoDestroy(
-    IN  PXENCONS_FDO    Fdo
+    _In_ PXENCONS_FDO   Fdo
     );
 
 #endif  // _XENCONS_FDO_H

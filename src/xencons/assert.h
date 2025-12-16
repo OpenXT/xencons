@@ -1,4 +1,5 @@
-/* Copyright (c) Citrix Systems Inc.
+/* Copyright (c) Xen Project.
+ * Copyright (c) Cloud Software Group, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms,
@@ -38,11 +39,11 @@
 
 static FORCEINLINE VOID
 __Bug(
-    IN  ULONG       Code,
-    IN  ULONG_PTR   Parameter1,
-    IN  ULONG_PTR   Parameter2,
-    IN  ULONG_PTR   Parameter3,
-    IN  ULONG_PTR   Parameter4
+    _In_ ULONG      Code,
+    _In_ ULONG_PTR  Parameter1,
+    _In_ ULONG_PTR  Parameter2,
+    _In_ ULONG_PTR  Parameter3,
+    _In_ ULONG_PTR  Parameter4
     )
 {
 #pragma prefast(suppress:28159)
@@ -57,8 +58,8 @@ __Bug(
 
 #define BUG(_TEXT)                                              \
         do {                                                    \
-            const CHAR  *_Text = (_TEXT);                       \
-            const CHAR  *_File = __FILE__;                      \
+            PCSTR       _Text = (_TEXT);                       \
+            PCSTR       _File = __FILE__;                      \
             ULONG       _Line = __LINE__;                       \
                                                                 \
             Error("BUG: " _TEXT "\n");                          \
@@ -88,7 +89,7 @@ __Bug(
 #define ASSERT(_EXP)                    \
         do {                            \
             __ASSERT(_EXP);             \
-            __analysis_assume(_EXP);    \
+            _Analysis_assume_(_EXP);    \
         } while (FALSE)
 
 #define ASSERT3U(_X, _OP, _Y)                       \
@@ -131,7 +132,7 @@ __Bug(
 
 #define ASSERT(_EXP)                    \
         do {                            \
-            __analysis_assume(_EXP);    \
+            _Analysis_assume_(_EXP);    \
         } while (FALSE)
 
 #define ASSERT3U(_X, _OP, _Y)           \
@@ -153,10 +154,10 @@ __Bug(
 
 static __inline BOOLEAN
 _IsZeroMemory(
-    IN  const PCHAR Caller,
-    IN  const PCHAR Name,
-    IN  PVOID       Buffer,
-    IN  ULONG       Length
+    _In_ PCSTR          Caller,
+    _In_ PCSTR          Name,
+    _In_ PVOID          Buffer,
+    _In_ ULONG          Length
     )
 {
     ULONG           Offset;
@@ -177,10 +178,10 @@ _IsZeroMemory(
 
 static __inline BOOLEAN
 _IsZeroMemory(
-    IN  const PCHAR Caller,
-    IN  const PCHAR Name,
-    IN  PVOID       Buffer,
-    IN  ULONG       Length
+    _In_ PCSTR          Caller,
+    _In_ PCSTR          Name,
+    _In_ PVOID          Buffer,
+    _In_ ULONG          Length
     )
 {
     UNREFERENCED_PARAMETER(Caller);
